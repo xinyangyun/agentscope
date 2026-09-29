@@ -4,3 +4,10 @@ spring:
 
 server:
   port: 8080
+
+agentscope:
+  agent:
+    name: assistant
+    system-prompt: You are a helpful AI assistant.
+    model: ${AGENTSCOPE_MODEL:openai:qwen-plus}
+    workspace: ${AGENTSCOPE_WORKSPACE:.agentscope/workspace}
