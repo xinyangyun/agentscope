@@ -9,5 +9,7 @@ agentscope:
   agent:
     name: assistant
     system-prompt: You are a helpful AI assistant.
-    model: ${AGENTSCOPE_MODEL:openai:qwen-plus}
+    model: ${AGENTSCOPE_MODEL:deepseek-flash}
+    api-key: ${DEEPSEEK_API_KEY:}
+    base-url: ${AGENTSCOPE_BASE_URL:https://api.deepseek.com}
     workspace: ${AGENTSCOPE_WORKSPACE:.agentscope/workspace}

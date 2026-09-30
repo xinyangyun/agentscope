@@ -11,18 +11,27 @@
 
 ## 模型配置
 
-聊天入口默认使用 `openai:gpt-4o-mini`。启动前配置 OpenAI API Key：
+聊天入口默认使用 DeepSeek 的 `deepseek-flash` 模型。启动前配置 DeepSeek API Key：
 
 ```bash
-export OPENAI_API_KEY="your-api-key"
+export DEEPSEEK_API_KEY="your-api-key"
 mvn spring-boot:run
 ```
 
 也可以通过环境变量调整模型和工作区：
 
 ```bash
-export AGENTSCOPE_MODEL="openai:gpt-4o-mini"
+export AGENTSCOPE_MODEL="deepseek-flash"
+export AGENTSCOPE_BASE_URL="https://api.deepseek.com"
 export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
+```
+
+`AGENTSCOPE_BASE_URL` 只填写接口根地址，不要拼接 `/chat/completions`。AgentScope 会自动追加聊天接口路径。
+
+需要更强模型时，可以切换为：
+
+```bash
+export AGENTSCOPE_MODEL="deepseek-v4-pro"
 ```
 
 `HarnessAgent` 会根据 `userId` 与 `sessionId` 自动隔离并持久化会话上下文。
@@ -85,7 +94,7 @@ curl --request POST \
 }
 ```
 
-校验失败时返回 `400 Bad Request`。如果没有配置 `OPENAI_API_KEY`，或模型服务不可用，服务会返回 `5xx` 错误。
+校验失败时返回 `400 Bad Request`。模型服务调用失败时返回 `502 Bad Gateway`，响应中的 `message` 会包含上游错误原因。
 
 ## 测试
 

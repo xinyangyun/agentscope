@@ -21,10 +21,30 @@ public class AgentChatService {
                 .sessionId(sessionId)
                 .build();
 
-        Msg response = agent.call(new UserMessage(message), context).block();
+        Msg response;
+        try {
+            response = agent.call(new UserMessage(message), context).block();
+        } catch (RuntimeException exception) {
+            throw new AgentChatException("Model request failed: " + rootMessage(exception), exception);
+        }
         if (response == null) {
             throw new IllegalStateException("Agent returned no response");
         }
         return response.getTextContent();
+    }
+
+    private String rootMessage(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        return root.getMessage() == null ? root.getClass().getSimpleName() : root.getMessage();
+    }
+
+    public static class AgentChatException extends RuntimeException {
+
+        public AgentChatException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 }
