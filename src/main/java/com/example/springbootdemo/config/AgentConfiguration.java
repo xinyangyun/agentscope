@@ -47,8 +47,6 @@ public class AgentConfiguration {
                 .sysPrompt(systemPrompt)
                 .model(chatModel)
                 .stateStore(shortTermMemoryStore)
-                .disableMemoryTools()
-                .disableMemoryHooks()
                 .workspace(Paths.get(workspace))
                 .build();
     }

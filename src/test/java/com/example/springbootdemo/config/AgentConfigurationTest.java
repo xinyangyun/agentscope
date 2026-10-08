@@ -16,7 +16,7 @@ class AgentConfigurationTest {
     Path workspace;
 
     @Test
-    void harnessAgentUsesProcessLocalShortTermMemory() {
+    void harnessAgentUsesShortTermStateAndLongTermMemoryTools() {
         AgentConfiguration configuration = new AgentConfiguration();
         AgentStateStore memoryStore = configuration.shortTermMemoryStore();
 
@@ -31,7 +31,7 @@ class AgentConfigurationTest {
             assertThat(memoryStore).isInstanceOf(InMemoryAgentStateStore.class);
             assertThat(agent.getStateStore()).isSameAs(memoryStore);
             assertThat(agent.getToolkit().getToolNames())
-                    .doesNotContain("memory_search", "memory_get", "memory_save");
+                    .contains("memory_search", "memory_get", "memory_save");
         }
     }
 }
