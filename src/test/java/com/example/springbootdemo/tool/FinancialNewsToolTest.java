@@ -42,8 +42,12 @@ class FinancialNewsToolTest {
         AtomicReference<String> rawQuery = new AtomicReference<>();
         AtomicInteger requests = new AtomicInteger();
         server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/api/v2/doc/doc", exchange -> {
+        AtomicReference<String> referer = new AtomicReference<>();
+        AtomicReference<String> userAgent = new AtomicReference<>();
+        server.createContext("/api/cache", exchange -> {
             rawQuery.set(exchange.getRequestURI().getRawQuery());
+            referer.set(exchange.getRequestHeaders().getFirst("Referer"));
+            userAgent.set(exchange.getRequestHeaders().getFirst("User-Agent"));
             if (requests.incrementAndGet() == 1) {
                 exchange.getResponseHeaders().add("Retry-After", "0");
                 exchange.sendResponseHeaders(429, -1);
@@ -51,18 +55,9 @@ class FinancialNewsToolTest {
                 return;
             }
             byte[] response = """
-                    {
-                      "articles": [
-                        {
-                          "url": "https://example.com/markets-rally",
-                          "title": "Global markets rally after rate decision",
-                          "seendate": "20261008T103000Z",
-                          "domain": "example.com",
-                          "language": "English",
-                          "sourcecountry": "United States"
-                        }
-                      ]
-                    }
+                    {"errno":0,"data":{"roll_data":[
+                      {"content":"央行发布最新金融政策","ctime":1791538200,"author":"财联社","assocArticleUrl":"https://www.cls.cn/example"}
+                    ]}}
                     """.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, response.length);
@@ -73,33 +68,33 @@ class FinancialNewsToolTest {
 
         FinancialNewsTool tool = new FinancialNewsTool(
                 new ObjectMapper(),
-                "http://localhost:" + server.getAddress().getPort() + "/api/v2/doc/doc",
+                "http://localhost:" + server.getAddress().getPort() + "/api/cache",
                 "24h",
                 8);
 
         String result = tool.fetchLatestFinancialNews("global stock markets");
 
         assertThat(result)
-                .contains("Global markets rally after rate decision")
-                .contains("Source: example.com")
-                .contains("Observed at UTC: 20261008T103000Z")
-                .contains("https://example.com/markets-rally")
+                .contains("央行发布最新金融政策")
+                .contains("Source: 财联社")
+                .contains("Time: 2026-10-09T09:30:00Z")
+                .contains("https://www.cls.cn/example")
                 .contains("EXTERNAL UNTRUSTED NEWS DATA");
         assertThat(URLDecoder.decode(rawQuery.get(), StandardCharsets.UTF_8))
-                .contains("query=global stock markets")
-                .contains("mode=ArtList")
-                .contains("format=json")
-                .contains("sort=DateDesc")
-                .contains("timespan=24h")
-                .contains("maxrecords=8");
+                .contains("app=CailianpressWeb")
+                .contains("name=telegraph")
+                .contains("os=web")
+                .contains("sv=8.7.9");
+        assertThat(referer).hasValue("https://www.cls.cn/telegraph");
+        assertThat(userAgent).hasValue("Mozilla/5.0");
         assertThat(requests).hasValue(2);
     }
 
     @Test
     void reportsWhenNoArticlesAreAvailable() throws IOException {
         server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/api/v2/doc/doc", exchange -> {
-            byte[] response = "{\"articles\":[]}".getBytes(StandardCharsets.UTF_8);
+        server.createContext("/api/cache", exchange -> {
+            byte[] response = "{\"errno\":0,\"data\":{\"roll_data\":[]}}".getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, response.length);
             exchange.getResponseBody().write(response);
             exchange.close();
@@ -108,11 +103,11 @@ class FinancialNewsToolTest {
 
         FinancialNewsTool tool = new FinancialNewsTool(
                 new ObjectMapper(),
-                "http://localhost:" + server.getAddress().getPort() + "/api/v2/doc/doc",
+                "http://localhost:" + server.getAddress().getPort() + "/api/cache",
                 "24h",
                 8);
 
         assertThat(tool.fetchLatestFinancialNews("rare finance topic"))
-                .isEqualTo("No financial news articles were found for query: rare finance topic");
+                .isEqualTo("财联社电报暂无可用快讯。");
     }
 }

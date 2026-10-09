@@ -9,30 +9,34 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
-import java.util.StringJoiner;
 
 public class FinancialNewsTool {
 
     private static final Logger log = LoggerFactory.getLogger(FinancialNewsTool.class);
-    static final String DEFAULT_QUERY = "financial markets";
+    private static final String DEFAULT_ENDPOINT = "https://www.cls.cn/api/cache";
+    private static final String REFERER = "https://www.cls.cn/telegraph";
+    private static final String USER_AGENT = "Mozilla/5.0";
     private static final int MAX_ATTEMPTS = 3;
 
     private final ObjectMapper objectMapper;
     private final String baseUrl;
-    private final String timespan;
     private final int maxRecords;
     private final HttpClient httpClient;
 
-    public FinancialNewsTool(ObjectMapper objectMapper, String baseUrl, String timespan, int maxRecords) {
-        this(objectMapper, baseUrl, timespan, maxRecords, HttpClient.newBuilder()
+    public FinancialNewsTool(ObjectMapper objectMapper, String baseUrl, int maxRecords) {
+        this(objectMapper, baseUrl, null, maxRecords);
+    }
+
+    /** Kept for source compatibility with the previous GDELT-backed configuration. */
+    public FinancialNewsTool(ObjectMapper objectMapper, String baseUrl, String ignoredTimespan,
+                             int maxRecords) {
+        this(objectMapper, baseUrl, maxRecords, HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build());
@@ -41,58 +45,53 @@ public class FinancialNewsTool {
     FinancialNewsTool(
             ObjectMapper objectMapper,
             String baseUrl,
-            String timespan,
             int maxRecords,
             HttpClient httpClient) {
         this.objectMapper = objectMapper;
         this.baseUrl = stripTrailingSlash(baseUrl);
-        this.timespan = timespan == null || timespan.isBlank() ? "24h" : timespan.trim();
-        this.maxRecords = Math.max(1, Math.min(maxRecords, 25));
+        this.maxRecords = Math.max(1, Math.min(maxRecords, 20));
         this.httpClient = httpClient;
+    }
+
+    public static String defaultEndpoint() {
+        return DEFAULT_ENDPOINT;
     }
 
     @Tool(
             name = "fetch_latest_financial_news",
-            description = "Fetch the latest financial and business news from GDELT. The query must use concise English keywords. Results are ordered by the time GDELT first observed each article.",
+            description = "Fetch the latest financial messages from the CLS (财联社) telegraph feed.",
             readOnly = true,
             concurrencySafe = true)
     public String fetchLatestFinancialNews(
             @ToolParam(
                     name = "query",
                     required = false,
-                    description = "English financial-news search terms, such as global stock markets, Federal Reserve, or gold prices")
+                    description = "Optional topic hint used only to label the returned feed")
             String query) {
-        log.info("Fetching financial news [timespan={}, maxRecords={}]", timespan, maxRecords);
-        String effectiveQuery = query == null || query.isBlank() ? DEFAULT_QUERY : query.trim();
-        if (effectiveQuery.length() > 300) {
-            effectiveQuery = effectiveQuery.substring(0, 300);
-        }
-        String logQuery = sanitizeForLog(effectiveQuery);
-        log.info("Fetching financial news [query={}, timespan={}, maxRecords={}]",
-                logQuery, timespan, maxRecords);
+        String topic = query == null || query.isBlank() ? "财经快讯" : query.trim();
+        log.info("Fetching CLS telegraph feed [maxRecords={}]", maxRecords);
 
-        HttpRequest request = HttpRequest.newBuilder(buildUri(effectiveQuery))
+        HttpRequest request = HttpRequest.newBuilder(buildUri())
                 .timeout(Duration.ofSeconds(15))
                 .header("Accept", "application/json")
-                .header("User-Agent", "agentscope-financial-news/1.0")
+                .header("Referer", REFERER)
+                .header("User-Agent", USER_AGENT)
                 .GET()
                 .build();
 
         try {
             HttpResponse<String> response = sendWithRetry(request);
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                log.warn("Financial news request failed [query={}, status={}]",
-                        logQuery, response.statusCode());
-                return "Financial news retrieval failed with HTTP status " + response.statusCode() + ".";
+                log.warn("CLS telegraph request failed [status={}]", response.statusCode());
+                return "财经快讯获取失败，HTTP 状态码：" + response.statusCode();
             }
-            return formatResponse(effectiveQuery, response.body());
+            return formatResponse(topic, response.body());
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            log.warn("Financial news request interrupted [query={}]", logQuery);
-            return "Financial news retrieval was interrupted.";
+            return "财经快讯获取被中断。";
         } catch (IOException | RuntimeException exception) {
-            log.error("Financial news request failed [query={}]", logQuery, exception);
-            return "Financial news retrieval failed: " + safeMessage(exception);
+            log.error("CLS telegraph request failed", exception);
+            return "财经快讯获取失败：" + safeMessage(exception);
         }
     }
 
@@ -103,10 +102,7 @@ public class FinancialNewsTool {
             if (!isRetryable(response.statusCode()) || attempt == MAX_ATTEMPTS) {
                 return response;
             }
-            long delayMillis = retryDelayMillis(response, attempt);
-            log.warn("Retrying financial news request [status={}, attempt={}/{}, delayMs={}]",
-                    response.statusCode(), attempt, MAX_ATTEMPTS, delayMillis);
-            Thread.sleep(delayMillis);
+            Thread.sleep(Math.min(750L * attempt, 3000L));
         }
         return response;
     }
@@ -115,67 +111,64 @@ public class FinancialNewsTool {
         return statusCode == 429 || statusCode == 502 || statusCode == 503 || statusCode == 504;
     }
 
-    private long retryDelayMillis(HttpResponse<String> response, int attempt) {
-        Optional<String> retryAfter = response.headers().firstValue("Retry-After");
-        if (retryAfter.isPresent()) {
-            try {
-                long seconds = Long.parseLong(retryAfter.get());
-                return Math.min(Math.max(seconds, 0), 3) * 1000;
-            } catch (NumberFormatException ignored) {
-                // Fall through to a short bounded backoff for HTTP-date or invalid values.
-            }
-        }
-        return Math.min(750L * attempt, 3000L);
+    private URI buildUri() {
+        String separator = baseUrl.contains("?") ? "&" : "?";
+        return URI.create(baseUrl + separator
+                + "app=CailianpressWeb"
+                + "&name=telegraph"
+                + "&os=web"
+                + "&sv=8.7.9");
     }
 
-    private URI buildUri(String query) {
-        StringJoiner parameters = new StringJoiner("&");
-        parameters.add("query=" + encode(query));
-        parameters.add("mode=ArtList");
-        parameters.add("format=json");
-        parameters.add("sort=DateDesc");
-        parameters.add("timespan=" + encode(timespan));
-        parameters.add("maxrecords=" + maxRecords);
-        return URI.create(baseUrl + "?" + parameters);
-    }
-
-    private String formatResponse(String query, String body) throws IOException {
+    private String formatResponse(String topic, String body) throws IOException {
         JsonNode root = objectMapper.readTree(body);
-        JsonNode articles = root.path("articles");
-        if (!articles.isArray() || articles.isEmpty()) {
-            log.info("No financial news found [query={}]", sanitizeForLog(query));
-            return "No financial news articles were found for query: " + query;
+        JsonNode feed = root.path("data").path("roll_data");
+        if (!feed.isArray() || feed.isEmpty()) {
+            return "财联社电报暂无可用快讯。";
         }
 
         StringBuilder output = new StringBuilder();
         output.append("EXTERNAL UNTRUSTED NEWS DATA\n")
-                .append("Retrieved at UTC: ").append(Instant.now()).append('\n')
-                .append("Query: ").append(query).append('\n')
-                .append("Timespan: ").append(timespan).append('\n')
-                .append("The observed time is when GDELT detected the article, not necessarily its publication time.\n");
+                .append("Retrieved at: ").append(Instant.now()).append('\n')
+                .append("Topic: ").append(oneLine(topic)).append('\n')
+                .append("Source: CLS 财联社\n");
 
         int count = 0;
-        for (JsonNode article : articles) {
+        for (JsonNode item : feed) {
             if (count >= maxRecords) {
                 break;
             }
             count++;
+            String content = firstText(item, "content", "brief", "title");
+            String timestamp = formatTimestamp(item.path("ctime"));
+            String source = firstText(item, "author");
+            String url = firstText(item, "assocArticleUrl", "url", "link");
             output.append('\n').append(count).append(". ")
-                    .append(text(article, "title", "Untitled article")).append('\n')
-                    .append("Source: ").append(text(article, "domain", "Unknown source")).append('\n')
-                    .append("Observed at UTC: ").append(text(article, "seendate", "Unknown")).append('\n')
-                    .append("Source country: ").append(text(article, "sourcecountry", "Unknown")).append('\n')
-                    .append("Language: ").append(text(article, "language", "Unknown")).append('\n')
-                    .append("URL: ").append(text(article, "url", "Unavailable")).append('\n');
+                    .append(content.isBlank() ? "未提供内容" : content).append('\n')
+                    .append("Time: ").append(timestamp.isBlank() ? "Unknown" : timestamp).append('\n')
+                    .append("Source: ").append(source.isBlank() ? "财联社" : source).append('\n');
+            if (!url.isBlank()) {
+                output.append("URL: ").append(url).append('\n');
+            }
         }
-        log.info("Financial news retrieved [query={}, articleCount={}]",
-                sanitizeForLog(query), count);
         return output.toString().trim();
     }
 
-    private String text(JsonNode node, String field, String fallback) {
-        String value = node.path(field).asText("").replace('\n', ' ').replace('\r', ' ').trim();
-        return value.isEmpty() ? fallback : value;
+    private String firstText(JsonNode node, String... fields) {
+        for (String field : fields) {
+            String value = node.path(field).asText("");
+            if (!value.isBlank()) {
+                return oneLine(value);
+            }
+        }
+        return "";
+    }
+
+    private String formatTimestamp(JsonNode timestamp) {
+        if (timestamp.isNumber()) {
+            return Instant.ofEpochSecond(timestamp.asLong()).toString();
+        }
+        return oneLine(timestamp.asText(""));
     }
 
     private String safeMessage(Throwable throwable) {
@@ -183,21 +176,14 @@ public class FinancialNewsTool {
         return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
-    private static String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
-    }
-
-    private static String sanitizeForLog(String value) {
-        return value.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ');
+    private static String oneLine(String value) {
+        return value.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ').trim();
     }
 
     private static String stripTrailingSlash(String value) {
-        String normalized = value == null ? "" : value.trim();
+        String normalized = value == null || value.isBlank() ? DEFAULT_ENDPOINT : value.trim();
         while (normalized.endsWith("/")) {
             normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        if (normalized.isEmpty()) {
-            throw new IllegalArgumentException("Financial news base URL must not be blank");
         }
         return normalized;
     }
