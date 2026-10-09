@@ -23,10 +23,16 @@ mvn spring-boot:run
 ```bash
 export AGENTSCOPE_MODEL="deepseek-flash"
 export AGENTSCOPE_BASE_URL="https://api.deepseek.com"
+export AGENTSCOPE_ENABLE_THINKING="false"
 export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
+export FINANCIAL_NEWS_TIMESPAN="24h"
+export FINANCIAL_NEWS_MAX_RECORDS="8"
 ```
 
 `AGENTSCOPE_BASE_URL` 只填写接口根地址，不要拼接 `/chat/completions`。AgentScope 会自动追加聊天接口路径。
+工具调用默认关闭思考模式，避免 OpenAI 兼容接口在多轮工具调用时因缺少
+`reasoning_content` 返回 `400`。仅在模型和接口都完整支持思考内容回传时，才将
+`AGENTSCOPE_ENABLE_THINKING` 设置为 `true`。
 
 需要更强模型时，可以切换为：
 
@@ -40,7 +46,7 @@ export AGENTSCOPE_MODEL="deepseek-v4-pro"
 
 ### 短期记忆容量
 
-当前未自定义会话压缩参数，使用 AgentScope 2.0.1 的默认策略：
+当前未自定义会话压缩参数，使用 AgentScope 2.0.4 的默认策略：
 
 - 累积到 50 条消息时触发上下文压缩。普通的一问一答约为 2 条消息，因此通常约 25 轮后触发。
 - 压缩后保留最近 20 条原始消息，普通问答约为最近 10 轮。
@@ -60,6 +66,23 @@ export AGENTSCOPE_MODEL="deepseek-v4-pro"
 - 默认每日记忆保留 90 天，会话记录保留 180 天，记忆整理的最小间隔为 30 分钟。
 
 删除 `AGENTSCOPE_WORKSPACE` 对应目录中的记忆文件即可清除长期记忆。短期记忆与长期记忆相互独立。
+
+### 财经新闻子 Agent
+
+主 Agent 注册了名为 `financial-news` 的子 Agent，用于查询和整理最新财经新闻。它通过 GDELT DOC API 获取数据，不需要额外的新闻 API Key。
+
+- 子 Agent 会根据用户的问题生成英文财经搜索词，并调用 `fetch_latest_financial_news` 工具。
+- 新闻默认覆盖最近 24 小时，每次最多返回 8 条，可通过 `FINANCIAL_NEWS_TIMESPAN` 和 `FINANCIAL_NEWS_MAX_RECORDS` 调整。
+- 结果按 GDELT 首次发现文章的时间倒序排列，并包含标题、来源域名、来源国家、语言、发现时间和原文链接。
+- 遇到 `429` 或临时网关错误时会进行有上限的自动重试；持续失败时会明确返回错误，不会伪造新闻结果。
+- 新闻标题和元数据被视为外部不可信数据，子 Agent 不会执行其中包含的指令。
+- 新闻内容仅用于信息整理，不构成个性化投资建议。
+
+可以直接通过聊天接口提出类似问题：
+
+```text
+请整理最近 24 小时最重要的全球股市新闻，并附上来源链接。
+```
 
 ## 启动
 

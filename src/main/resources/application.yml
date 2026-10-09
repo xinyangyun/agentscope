@@ -12,4 +12,9 @@ agentscope:
     model: ${AGENTSCOPE_MODEL:deepseek-flash}
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${AGENTSCOPE_BASE_URL:https://api.deepseek.com}
+    enable-thinking: ${AGENTSCOPE_ENABLE_THINKING:false}
     workspace: ${AGENTSCOPE_WORKSPACE:.agentscope/workspace}
+  news:
+    base-url: ${FINANCIAL_NEWS_BASE_URL:https://api.gdeltproject.org/api/v2/doc/doc}
+    timespan: ${FINANCIAL_NEWS_TIMESPAN:24h}
+    max-records: ${FINANCIAL_NEWS_MAX_RECORDS:8}
