@@ -35,6 +35,7 @@ class AgentConfigurationTest {
                 "test-api-key",
                 "https://api.deepseek.com",
                 false,
+                Path.of("skills").toString(),
                 workspace.toString(),
                 memoryStore,
                 financialNewsTool,
@@ -49,6 +50,13 @@ class AgentConfigurationTest {
                             "memory_save",
                             "fetch_latest_financial_news",
                             "push_wechat_message");
+            assertThat(agent.getSkillRepositories())
+                    .anySatisfy(repository -> {
+                        assertThat(repository.getAllSkillNames())
+                                .contains("stock-buy-fit-analysis");
+                        assertThat(repository.getSkill("stock-buy-fit-analysis").getDescription())
+                                .contains("分析一只股票是否适合买入");
+                    });
             assertThat(agent.getSubagentAgentManager().hasAgent("financial-news")).isTrue();
             assertThat(agent.getSubagentAgentManager().hasAgent("pushplus")).isTrue();
             assertThat(agent.getSubagentAgentManager().getDeclaration("financial-news"))

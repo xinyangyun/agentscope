@@ -13,6 +13,7 @@ agentscope:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${AGENTSCOPE_BASE_URL:https://api.deepseek.com}
     enable-thinking: ${AGENTSCOPE_ENABLE_THINKING:false}
+    skills-dir: ${AGENTSCOPE_SKILLS_DIR:skills}
     workspace: ${AGENTSCOPE_WORKSPACE:.agentscope/workspace}
   news:
     base-url: ${FINANCIAL_NEWS_BASE_URL:https://www.cls.cn/api/cache}

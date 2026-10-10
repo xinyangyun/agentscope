@@ -76,6 +76,7 @@ public class AgentConfiguration {
             @Value("${agentscope.agent.api-key:}") String apiKey,
             @Value("${agentscope.agent.base-url:https://api.deepseek.com}") String baseUrl,
             @Value("${agentscope.agent.enable-thinking:false}") boolean enableThinking,
+            @Value("${agentscope.agent.skills-dir:skills}") String skillsDir,
             @Value("${agentscope.agent.workspace:.agentscope/workspace}") String workspace,
             AgentStateStore shortTermMemoryStore,
             FinancialNewsTool financialNewsTool,
@@ -105,6 +106,7 @@ public class AgentConfiguration {
                 .toolkit(toolkit)
                 .stateStore(shortTermMemoryStore)
                 .enablePendingToolRecovery(true)
+                .projectGlobalSkillsDir(Paths.get(skillsDir))
                 .workspace(Paths.get(workspace))
                 .subagent(financialNewsSubagent())
                 .subagent(pushPlusSubagent())

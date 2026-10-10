@@ -24,6 +24,7 @@ mvn spring-boot:run
 export AGENTSCOPE_MODEL="deepseek-flash"
 export AGENTSCOPE_BASE_URL="https://api.deepseek.com"
 export AGENTSCOPE_ENABLE_THINKING="false"
+export AGENTSCOPE_SKILLS_DIR="skills"
 export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
 export FINANCIAL_NEWS_MAX_RECORDS="8"
 export PUSHPLUS_TOKEN="your-pushplus-token"
@@ -43,6 +44,18 @@ export AGENTSCOPE_MODEL="deepseek-v4-pro"
 `HarnessAgent` 使用进程内短期记忆，并根据 `userId` 与 `sessionId` 隔离会话上下文。
 同一组 `userId` 和 `sessionId` 的后续请求会携带此前对话，不同会话之间不会串话；
 应用重启后短期记忆会自动清空。
+
+### 股票分析 Skill
+
+项目通过 `AGENTSCOPE_SKILLS_DIR` 加载可版本管理的全局 Skill，默认目录为仓库根目录下的
+`skills/`。当前内置 `stock-buy-fit-analysis`，用于在用户询问“分析 XX 股票”、
+“XX 适不适合买”或“帮我看看 XX 能不能买”等问题时，按生意模式、行业、财务、
+治理、估值、时机、风险和仓位匹配进行结构化分析。
+
+Skill 会区分“公司是否优秀”和“当前价格是否适合买入”，输出评分、关键风险、
+买入/不买条件、操作框架及数据缺口，并明确声明分析不构成投资建议。默认采用 A 股、
+中线、中等风险、未持仓的假设；提供股票代码、市场、持有期限、风险偏好和持仓成本，
+可以得到更贴合场景的结果。
 
 ### 短期记忆容量
 
