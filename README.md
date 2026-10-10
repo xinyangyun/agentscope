@@ -26,6 +26,7 @@ export AGENTSCOPE_BASE_URL="https://api.deepseek.com"
 export AGENTSCOPE_ENABLE_THINKING="false"
 export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
 export FINANCIAL_NEWS_MAX_RECORDS="8"
+export PUSHPLUS_TOKEN="your-pushplus-token"
 ```
 
 `AGENTSCOPE_BASE_URL` 只填写接口根地址，不要拼接 `/chat/completions`。AgentScope 会自动追加聊天接口路径。
@@ -81,6 +82,18 @@ export AGENTSCOPE_MODEL="deepseek-v4-pro"
 
 ```text
 请整理最新财经快讯，并附上时间和来源链接。
+```
+
+### 微信推送子 Agent
+
+主 Agent 注册了名为 `pushplus` 的子 Agent，用于在用户明确要求时通过 PushPlus 推送微信消息。
+
+- PushPlus token 通过 `PUSHPLUS_TOKEN` 环境变量配置，不写入源码或日志。
+- 默认使用 `markdown` 模板，也可以在请求中指定其他模板。
+- 可以直接提出类似请求：
+
+```text
+把“系统已完成部署”以标题“部署通知”推送到我的微信。
 ```
 
 ## 启动

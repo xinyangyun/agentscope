@@ -17,3 +17,6 @@ agentscope:
   news:
     base-url: ${FINANCIAL_NEWS_BASE_URL:https://www.cls.cn/api/cache}
     max-records: ${FINANCIAL_NEWS_MAX_RECORDS:8}
+  pushplus:
+    token: ${PUSHPLUS_TOKEN:}
+    base-url: ${PUSHPLUS_BASE_URL:https://www.pushplus.plus/send}

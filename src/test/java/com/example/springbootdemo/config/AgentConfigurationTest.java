@@ -1,6 +1,7 @@
 package com.example.springbootdemo.config;
 
 import com.example.springbootdemo.tool.FinancialNewsTool;
+import com.example.springbootdemo.tool.PushPlusTool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.state.AgentStateStore;
@@ -24,6 +25,8 @@ class AgentConfigurationTest {
         AgentStateStore memoryStore = configuration.shortTermMemoryStore();
         FinancialNewsTool financialNewsTool = new FinancialNewsTool(
                 new ObjectMapper(), "https://example.com/api/v2/doc/doc", "24h", 8);
+        PushPlusTool pushPlusTool = new PushPlusTool(
+                new ObjectMapper(), "test-token", "https://example.com/push");
 
         try (HarnessAgent agent = configuration.harnessAgent(
                 "assistant",
@@ -34,7 +37,8 @@ class AgentConfigurationTest {
                 false,
                 workspace.toString(),
                 memoryStore,
-                financialNewsTool)) {
+                financialNewsTool,
+                pushPlusTool)) {
             assertThat(memoryStore).isInstanceOf(InMemoryAgentStateStore.class);
             assertThat(agent.getStateStore()).isSameAs(memoryStore);
             assertThat(agent.getDelegate().isPendingToolRecoveryEnabled()).isTrue();
@@ -43,12 +47,18 @@ class AgentConfigurationTest {
                             "memory_search",
                             "memory_get",
                             "memory_save",
-                            "fetch_latest_financial_news");
+                            "fetch_latest_financial_news",
+                            "push_wechat_message");
             assertThat(agent.getSubagentAgentManager().hasAgent("financial-news")).isTrue();
+            assertThat(agent.getSubagentAgentManager().hasAgent("pushplus")).isTrue();
             assertThat(agent.getSubagentAgentManager().getDeclaration("financial-news"))
                     .get()
                     .extracting(declaration -> declaration.getTools())
                     .isEqualTo(java.util.List.of("fetch_latest_financial_news"));
+            assertThat(agent.getSubagentAgentManager().getDeclaration("pushplus"))
+                    .get()
+                    .extracting(declaration -> declaration.getTools())
+                    .isEqualTo(java.util.List.of("push_wechat_message"));
 
             try (HarnessAgent financialNewsAgent = (HarnessAgent) agent.getSubagentAgentManager()
                     .createAgent("financial-news", RuntimeContext.builder()
@@ -58,6 +68,14 @@ class AgentConfigurationTest {
                 assertThat(financialNewsAgent.getToolkit().getToolNames())
                         .contains("fetch_latest_financial_news");
                 assertThat(financialNewsAgent.getDelegate().isPendingToolRecoveryEnabled()).isTrue();
+            }
+            try (HarnessAgent pushPlusAgent = (HarnessAgent) agent.getSubagentAgentManager()
+                    .createAgent("pushplus", RuntimeContext.builder()
+                            .userId("user-001")
+                            .sessionId("session-002")
+                            .build())) {
+                assertThat(pushPlusAgent.getToolkit().getToolNames())
+                        .contains("push_wechat_message");
             }
         }
     }

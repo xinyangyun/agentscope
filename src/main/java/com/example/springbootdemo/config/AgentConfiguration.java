@@ -1,6 +1,7 @@
 package com.example.springbootdemo.config;
 
 import com.example.springbootdemo.tool.FinancialNewsTool;
+import com.example.springbootdemo.tool.PushPlusTool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.model.ModelCreationContext;
@@ -35,6 +36,16 @@ public class AgentConfiguration {
             reporting from analysis and do not provide personalized investment advice.
             If retrieval fails or returns no articles, state that directly.
             """;
+    private static final String PUSHPLUS_AGENT_NAME = "pushplus";
+    private static final String PUSHPLUS_AGENT_DESCRIPTION =
+            "Sends a requested notification to WeChat through PushPlus. Use only when the user explicitly asks to push or notify.";
+    private static final String PUSHPLUS_AGENT_PROMPT = """
+            You are a notification subagent.
+            Only send a message when the user explicitly asks for a WeChat notification.
+            Preserve the user's intended title and content, and use markdown unless another
+            template is explicitly requested. Never expose the PushPlus token in your answer.
+            Report the tool's success or failure plainly and do not claim delivery if the tool failed.
+            """;
 
     @Bean
     public AgentStateStore shortTermMemoryStore() {
@@ -50,6 +61,14 @@ public class AgentConfiguration {
     }
 
     @Bean
+    public PushPlusTool pushPlusTool(
+            ObjectMapper objectMapper,
+            @Value("${agentscope.pushplus.token:}") String token,
+            @Value("${agentscope.pushplus.base-url:https://www.pushplus.plus/send}") String baseUrl) {
+        return new PushPlusTool(objectMapper, token, baseUrl);
+    }
+
+    @Bean
     public HarnessAgent harnessAgent(
             @Value("${agentscope.agent.name:assistant}") String name,
             @Value("${agentscope.agent.system-prompt:You are a helpful AI assistant.}") String systemPrompt,
@@ -59,7 +78,8 @@ public class AgentConfiguration {
             @Value("${agentscope.agent.enable-thinking:false}") boolean enableThinking,
             @Value("${agentscope.agent.workspace:.agentscope/workspace}") String workspace,
             AgentStateStore shortTermMemoryStore,
-            FinancialNewsTool financialNewsTool) {
+            FinancialNewsTool financialNewsTool,
+            PushPlusTool pushPlusTool) {
         if (apiKey.isBlank()) {
             throw new IllegalStateException(
                     "Missing DeepSeek API key. Set DEEPSEEK_API_KEY before starting the application.");
@@ -76,6 +96,7 @@ public class AgentConfiguration {
 
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(financialNewsTool);
+        toolkit.registerTool(pushPlusTool);
 
         return HarnessAgent.builder()
                 .name(name)
@@ -86,6 +107,7 @@ public class AgentConfiguration {
                 .enablePendingToolRecovery(true)
                 .workspace(Paths.get(workspace))
                 .subagent(financialNewsSubagent())
+                .subagent(pushPlusSubagent())
                 .build();
     }
 
@@ -97,6 +119,19 @@ public class AgentConfiguration {
                 .mode(SubagentDeclaration.Mode.SUBAGENT)
                 .tools(List.of("fetch_latest_financial_news"))
                 .steps(4)
+                .persistSession(false)
+                .enablePendingToolRecovery(true)
+                .build();
+    }
+
+    private SubagentDeclaration pushPlusSubagent() {
+        return SubagentDeclaration.builder()
+                .name(PUSHPLUS_AGENT_NAME)
+                .description(PUSHPLUS_AGENT_DESCRIPTION)
+                .inlineAgentsBody(PUSHPLUS_AGENT_PROMPT)
+                .mode(SubagentDeclaration.Mode.SUBAGENT)
+                .tools(List.of("push_wechat_message"))
+                .steps(3)
                 .persistSession(false)
                 .enablePendingToolRecovery(true)
                 .build();
