@@ -24,3 +24,5 @@ agentscope:
   stock:
     base-url: ${STOCK_QUOTE_BASE_URL:https://push2.eastmoney.com/api/qt/stock/get}
     tencent-base-url: ${TENCENT_STOCK_QUOTE_BASE_URL:http://qt.gtimg.cn/q}
+  market-index:
+    tencent-base-url: ${MARKET_INDEX_TENCENT_BASE_URL:http://qt.gtimg.cn/q}

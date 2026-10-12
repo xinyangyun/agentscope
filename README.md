@@ -30,6 +30,7 @@ export FINANCIAL_NEWS_MAX_RECORDS="8"
 export PUSHPLUS_TOKEN="your-pushplus-token"
 export STOCK_QUOTE_BASE_URL="https://push2.eastmoney.com/api/qt/stock/get"
 export TENCENT_STOCK_QUOTE_BASE_URL="http://qt.gtimg.cn/q"
+export MARKET_INDEX_TENCENT_BASE_URL="http://qt.gtimg.cn/q"
 ```
 
 `AGENTSCOPE_BASE_URL` 只填写接口根地址，不要拼接 `/chat/completions`。AgentScope 会自动追加聊天接口路径。
@@ -122,6 +123,18 @@ Skill 会区分“公司是否优秀”和“当前价格是否适合买入”�
 
 ```text
 帮我监控贵州茅台 600519 的最新价格、涨跌幅和涨了多少元。
+```
+
+### 大盘与板块监控子 Agent
+
+主 Agent 注册了名为 `market-index-monitor` 的子 Agent，用于监控大盘指数和板块数据。目前第一版支持上证指数，后续可以在同一工具中增加其他指数和行业板块代码。
+
+- 数据来自腾讯行情接口，响应按 GBK 解码。
+- 返回当前点位、涨跌点数、涨跌幅、开高低、昨收、成交量、成交额和行情时间。
+- 同时返回可用的振幅、量比、均价、估值、市值和 52 周高低点。
+
+```text
+帮我查看上证指数最新点位、涨跌幅和成交额。
 ```
 
 ## 启动

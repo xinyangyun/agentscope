@@ -1,6 +1,7 @@
 package com.example.springbootdemo.config;
 
 import com.example.springbootdemo.tool.FinancialNewsTool;
+import com.example.springbootdemo.tool.MarketIndexTool;
 import com.example.springbootdemo.tool.PushPlusTool;
 import com.example.springbootdemo.tool.StockQuoteTool;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,7 @@ class AgentConfigurationTest {
                 new ObjectMapper(), "test-token", "https://example.com/push");
         StockQuoteTool stockQuoteTool = new StockQuoteTool(
                 new ObjectMapper(), "https://example.com/api/qt/stock/get");
+        MarketIndexTool marketIndexTool = new MarketIndexTool("https://example.com/q");
 
         try (HarnessAgent agent = configuration.harnessAgent(
                 "assistant",
@@ -43,7 +45,8 @@ class AgentConfigurationTest {
                 memoryStore,
                 financialNewsTool,
                 pushPlusTool,
-                stockQuoteTool)) {
+                stockQuoteTool,
+                marketIndexTool)) {
             assertThat(memoryStore).isInstanceOf(InMemoryAgentStateStore.class);
             assertThat(agent.getStateStore()).isSameAs(memoryStore);
             assertThat(agent.getDelegate().isPendingToolRecoveryEnabled()).isTrue();
@@ -54,7 +57,8 @@ class AgentConfigurationTest {
                             "memory_save",
                             "fetch_latest_financial_news",
                             "push_wechat_message",
-                            "fetch_stock_quote");
+                            "fetch_stock_quote",
+                            "fetch_market_index");
             assertThat(agent.getSkillRepositories())
                     .anySatisfy(repository -> {
                         assertThat(repository.getAllSkillNames())
@@ -65,6 +69,7 @@ class AgentConfigurationTest {
             assertThat(agent.getSubagentAgentManager().hasAgent("financial-news")).isTrue();
             assertThat(agent.getSubagentAgentManager().hasAgent("pushplus")).isTrue();
             assertThat(agent.getSubagentAgentManager().hasAgent("stock-monitor")).isTrue();
+            assertThat(agent.getSubagentAgentManager().hasAgent("market-index-monitor")).isTrue();
             assertThat(agent.getSubagentAgentManager().getDeclaration("financial-news"))
                     .get()
                     .extracting(declaration -> declaration.getTools())
@@ -77,6 +82,10 @@ class AgentConfigurationTest {
                     .get()
                     .extracting(declaration -> declaration.getTools())
                     .isEqualTo(java.util.List.of("fetch_stock_quote"));
+            assertThat(agent.getSubagentAgentManager().getDeclaration("market-index-monitor"))
+                    .get()
+                    .extracting(declaration -> declaration.getTools())
+                    .isEqualTo(java.util.List.of("fetch_market_index"));
 
             try (HarnessAgent financialNewsAgent = (HarnessAgent) agent.getSubagentAgentManager()
                     .createAgent("financial-news", RuntimeContext.builder()
@@ -102,6 +111,14 @@ class AgentConfigurationTest {
                             .build())) {
                 assertThat(stockMonitorAgent.getToolkit().getToolNames())
                         .contains("fetch_stock_quote");
+            }
+            try (HarnessAgent marketIndexMonitorAgent = (HarnessAgent) agent.getSubagentAgentManager()
+                    .createAgent("market-index-monitor", RuntimeContext.builder()
+                            .userId("user-001")
+                            .sessionId("session-004")
+                            .build())) {
+                assertThat(marketIndexMonitorAgent.getToolkit().getToolNames())
+                        .contains("fetch_market_index");
             }
         }
     }
