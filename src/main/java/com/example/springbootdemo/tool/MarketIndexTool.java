@@ -22,6 +22,7 @@ public class MarketIndexTool {
     private static final Logger log = LoggerFactory.getLogger(MarketIndexTool.class);
     private static final String DEFAULT_ENDPOINT = "http://qt.gtimg.cn/q";
     private static final String SHANGHAI_COMPOSITE = "sh000001";
+    private static final String CHINEXT_INDEX = "sz399006";
 
     private final String endpoint;
     private final HttpClient httpClient;
@@ -40,14 +41,14 @@ public class MarketIndexTool {
 
     @Tool(
             name = "fetch_market_index",
-            description = "Fetch current Chinese market-index data. Currently supports the Shanghai Composite Index.",
+            description = "Fetch current Chinese market-index data. Supports the Shanghai Composite and ChiNext Index.",
             readOnly = true,
             concurrencySafe = true)
     public String fetchMarketIndex(
             @ToolParam(
                     name = "index",
                     required = false,
-                    description = "Index name or code. Currently supports 上证指数, 000001, or sh000001")
+                    description = "Index name or code. Supports 上证指数/000001/sh000001 and 创业板指/399006/sz399006")
             String index) {
         final String symbol;
         try {
@@ -156,7 +157,12 @@ public class MarketIndexTool {
                 || normalized.equals("000001") || normalized.equals(SHANGHAI_COMPOSITE)) {
             return SHANGHAI_COMPOSITE;
         }
-        throw new IllegalArgumentException("目前仅支持上证指数（000001）。");
+        if (normalized.equals("创业板") || normalized.equals("创业板指")
+                || normalized.equals("创业板指数") || normalized.equals("399006")
+                || normalized.equals(CHINEXT_INDEX)) {
+            return CHINEXT_INDEX;
+        }
+        throw new IllegalArgumentException("目前支持上证指数（000001）和创业板指（399006）。");
     }
 
     private int findTimestampIndex(String[] fields) {

@@ -65,11 +65,11 @@ public class AgentConfiguration {
             """;
     private static final String MARKET_INDEX_MONITOR_AGENT_NAME = "market-index-monitor";
     private static final String MARKET_INDEX_MONITOR_AGENT_DESCRIPTION =
-            "Retrieves current Chinese market-index and sector data. Currently supports the Shanghai Composite Index.";
+            "Retrieves current Chinese market-index and sector data. Supports the Shanghai Composite and ChiNext Index.";
     private static final String MARKET_INDEX_MONITOR_AGENT_PROMPT = """
             You are a Chinese market-index monitoring subagent.
             Always call fetch_market_index before answering so the index data is current.
-            Currently, only the Shanghai Composite Index is supported. Report the current
+            Currently, the Shanghai Composite and ChiNext Index are supported. Report the current
             point level, point change, percentage change, direction, open, high, low,
             previous close, volume, turnover, amplitude, average, valuation metrics,
             market capitalization, 52-week range, and quote time when available.
