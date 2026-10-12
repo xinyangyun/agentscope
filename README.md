@@ -28,6 +28,7 @@ export AGENTSCOPE_SKILLS_DIR="skills"
 export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
 export FINANCIAL_NEWS_MAX_RECORDS="8"
 export PUSHPLUS_TOKEN="your-pushplus-token"
+export STOCK_QUOTE_BASE_URL="https://push2.eastmoney.com/api/qt/stock/get"
 ```
 
 `AGENTSCOPE_BASE_URL` 只填写接口根地址，不要拼接 `/chat/completions`。AgentScope 会自动追加聊天接口路径。
@@ -107,6 +108,18 @@ Skill 会区分“公司是否优秀”和“当前价格是否适合买入”�
 
 ```text
 把“系统已完成部署”以标题“部署通知”推送到我的微信。
+```
+
+### 股票监控子 Agent
+
+主 Agent 注册了名为 `stock-monitor` 的子 Agent，用于查询 A 股最新行情。它通过东方财富行情接口获取数据，不需要额外的 API Key。
+
+- 支持六位 A 股代码，例如上海股票 `600519`、深圳股票 `000001`。
+- 返回股票名称、最新价、涨跌金额、涨跌幅、上涨或下跌状态、昨收和查询时间。
+- 行情在休市期间可能是最近一次收盘价或延迟价格，不构成投资建议。
+
+```text
+帮我监控贵州茅台 600519 的最新价格、涨跌幅和涨了多少元。
 ```
 
 ## 启动
