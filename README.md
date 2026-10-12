@@ -29,6 +29,7 @@ export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
 export FINANCIAL_NEWS_MAX_RECORDS="8"
 export PUSHPLUS_TOKEN="your-pushplus-token"
 export STOCK_QUOTE_BASE_URL="https://push2.eastmoney.com/api/qt/stock/get"
+export TENCENT_STOCK_QUOTE_BASE_URL="http://qt.gtimg.cn/q"
 ```
 
 `AGENTSCOPE_BASE_URL` 只填写接口根地址，不要拼接 `/chat/completions`。AgentScope 会自动追加聊天接口路径。
@@ -112,10 +113,11 @@ Skill 会区分“公司是否优秀”和“当前价格是否适合买入”�
 
 ### 股票监控子 Agent
 
-主 Agent 注册了名为 `stock-monitor` 的子 Agent，用于查询 A 股最新行情。它通过东方财富行情接口获取数据，不需要额外的 API Key。
+主 Agent 注册了名为 `stock-monitor` 的子 Agent，用于查询 A 股最新行情。它优先使用东方财富行情接口；东方财富网络异常、返回错误或关键行情字段缺失时，会自动切换到腾讯行情接口。
 
 - 支持六位 A 股代码，例如上海股票 `600519`、深圳股票 `000001`。
-- 返回股票名称、最新价、涨跌金额、涨跌幅、上涨或下跌状态、昨收和查询时间。
+- 返回股票名称、最新价、涨跌金额、涨跌幅、上涨或下跌状态、今日最高、今日最低、今日开盘、昨收、成交量、成交额和查询时间。
+- 腾讯行情响应按 GBK 解码，并额外返回可用的换手率、市盈率、市净率、市值及涨跌停价格。
 - 行情在休市期间可能是最近一次收盘价或延迟价格，不构成投资建议。
 
 ```text
