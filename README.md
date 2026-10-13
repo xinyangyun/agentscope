@@ -26,6 +26,11 @@ export AGENTSCOPE_BASE_URL="https://api.deepseek.com"
 export AGENTSCOPE_ENABLE_THINKING="false"
 export AGENTSCOPE_SKILLS_DIR="skills"
 export AGENTSCOPE_WORKSPACE=".agentscope/workspace"
+export AGENTSCOPE_V2_MODEL="deepseek-flash"
+export AGENTSCOPE_V2_API_KEY="$DEEPSEEK_API_KEY"
+export AGENTSCOPE_V2_BASE_URL="https://api.deepseek.com"
+export AGENTSCOPE_V2_WORKSPACE=".agentscope/plan-workspace"
+export AGENTSCOPE_V2_PLAN_DIR="plans"
 export FINANCIAL_NEWS_MAX_RECORDS="8"
 export PUSHPLUS_TOKEN="your-pushplus-token"
 export STOCK_QUOTE_BASE_URL="https://push2.eastmoney.com/api/qt/stock/get"
@@ -201,6 +206,60 @@ curl --request POST \
 ```
 
 校验失败时返回 `400 Bad Request`。模型服务调用失败时返回 `502 Bad Gateway`，响应中的 `message` 会包含上游错误原因。
+
+### Plan Mode 对话（v2）
+
+`POST /chat/v2` 使用独立的 `HarnessAgent` 和 `application-plan-mode.yml` 配置，不会修改或复用
+原 `/api/chat` 的 Agent、短期状态存储与工作区。v2 Agent 启用了 AgentScope Plan Mode 和任务列表；
+默认在只读 PLAN 阶段调查并把计划写入独立工作区的 `plans/PLAN.md`，收到显式批准后才进入
+BUILD 阶段执行。
+
+首次提交任务：
+
+```bash
+curl --request POST \
+  --url http://localhost:8080/chat/v2 \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "message": "分析当前项目，并制定重构订单模块的计划",
+    "userId": "user-001",
+    "sessionId": "plan-session-001"
+  }'
+```
+
+响应中的 `mode` 为 `PLAN` 时，检查 `message` 和 `planFile`。批准后使用相同的 `userId` 和
+`sessionId` 再请求一次，并设置 `approvePlan: true`：
+
+```bash
+curl --request POST \
+  --url http://localhost:8080/chat/v2 \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "message": "批准该计划，请按计划继续执行",
+    "userId": "user-001",
+    "sessionId": "plan-session-001",
+    "approvePlan": true
+  }'
+```
+
+成功响应额外包含：
+
+| 字段 | 说明 |
+| --- | --- |
+| `mode` | 当前阶段，`PLAN` 或 `BUILD` |
+| `planFile` | 独立 v2 工作区中的计划文件路径，默认 `plans/PLAN.md` |
+
+`approvePlan` 为 `true` 但该会话没有待批准计划时返回 `409 Conflict`。Plan Mode 的独立配置项
+使用 `AGENTSCOPE_V2_*` 环境变量；默认不开启 PLAN 阶段的 shell，可通过
+`AGENTSCOPE_V2_ALLOW_SHELL=true` 允许只读调查命令，但这会弱化默认的只读保证。
+
+v2 默认使用非流式模型响应（`AGENTSCOPE_V2_STREAM=false`），以减少流式连接中断带来的影响。
+单次模型请求超时默认 120 秒（`AGENTSCOPE_V2_MODEL_TIMEOUT_SECONDS`）；网络断开或超时最多尝试
+3 次（`AGENTSCOPE_V2_MODEL_MAX_ATTEMPTS`，范围 1 到 5）。重试仅发生在模型请求层，不重跑
+已经执行的工具或微信推送；若开启流式响应，则禁用模型自动重试，避免拼接残缺响应。
+`approvePlan: true` 会将等待中的 `plan_exit` 转换为 SDK 的确认消息，再恢复同一会话。
+重启应用会清空内存会话，需要重新提交任务并审批。持续出现 EOF 时请查看服务端完整异常堆栈，
+不要直接重复提交包含推送的整段任务。
 
 ## 测试
 

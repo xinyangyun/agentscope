@@ -1,0 +1,15 @@
+agentscope:
+  plan-agent:
+    name: ${AGENTSCOPE_V2_NAME:plan-assistant}
+    system-prompt: ${AGENTSCOPE_V2_SYSTEM_PROMPT:You are a plan-first AI assistant. Investigate, write a concrete plan, request approval, and only then execute it.}
+    model: ${AGENTSCOPE_V2_MODEL:${AGENTSCOPE_MODEL:deepseek-flash}}
+    api-key: ${AGENTSCOPE_V2_API_KEY:${DEEPSEEK_API_KEY:}}
+    base-url: ${AGENTSCOPE_V2_BASE_URL:${AGENTSCOPE_BASE_URL:https://api.deepseek.com}}
+    enable-thinking: ${AGENTSCOPE_V2_ENABLE_THINKING:false}
+    stream: ${AGENTSCOPE_V2_STREAM:false}
+    model-timeout-seconds: ${AGENTSCOPE_V2_MODEL_TIMEOUT_SECONDS:120}
+    model-max-attempts: ${AGENTSCOPE_V2_MODEL_MAX_ATTEMPTS:3}
+    skills-dir: ${AGENTSCOPE_V2_SKILLS_DIR:skills}
+    workspace: ${AGENTSCOPE_V2_WORKSPACE:.agentscope/plan-workspace}
+    plan-file-directory: ${AGENTSCOPE_V2_PLAN_DIR:plans}
+    allow-shell-in-plan-mode: ${AGENTSCOPE_V2_ALLOW_SHELL:false}
