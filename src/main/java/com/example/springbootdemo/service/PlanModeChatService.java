@@ -8,6 +8,7 @@ import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.state.AgentState;
+import io.agentscope.core.state.Task;
 import io.agentscope.harness.agent.HarnessAgent;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -84,6 +85,40 @@ public class PlanModeChatService {
                 state.getPlanModeContext().getCurrentPlanFile());
     }
 
+    public PlanDetails getPlan(String userId, String sessionId) {
+        if (!agent.getStateStore().exists(userId, sessionId)) {
+            throw new PlanNotFoundException("No Plan Mode session was found for the supplied userId and sessionId");
+        }
+
+        RuntimeContext context = RuntimeContext.builder()
+                .userId(userId)
+                .sessionId(sessionId)
+                .build();
+        AgentState state = agent.getDelegate().getAgentState(context);
+        String planFile = state.getPlanModeContext().getCurrentPlanFile();
+        String planContent = planFile == null
+                ? ""
+                : agent.workspaceFor(userId, sessionId).readManagedWorkspaceFileUtf8(context, planFile);
+        List<PlanTask> tasks = state.getTasksContext().getTasks().stream()
+                .map(this::toPlanTask)
+                .toList();
+
+        return new PlanDetails(
+                state.getPlanModeContext().isPlanActive() ? "PLAN" : "BUILD",
+                planFile,
+                planContent,
+                !pendingPlanExits(state).isEmpty(),
+                tasks);
+    }
+
+    private PlanTask toPlanTask(Task task) {
+        return new PlanTask(
+                task.getId(),
+                task.getSubject(),
+                task.getDescription(),
+                task.getState().getWire());
+    }
+
     private List<ToolUseBlock> pendingPlanExits(AgentState state) {
         return state.getContext().stream()
                 .flatMap(message -> message.getContentBlocks(ToolUseBlock.class).stream())
@@ -103,9 +138,27 @@ public class PlanModeChatService {
     public record PlanModeChatResult(String message, String mode, String planFile) {
     }
 
+    public record PlanDetails(
+            String mode,
+            String planFile,
+            String planContent,
+            boolean awaitingApproval,
+            List<PlanTask> tasks) {
+    }
+
+    public record PlanTask(String id, String subject, String description, String state) {
+    }
+
     public static class PlanApprovalException extends RuntimeException {
 
         public PlanApprovalException(String message) {
+            super(message);
+        }
+    }
+
+    public static class PlanNotFoundException extends RuntimeException {
+
+        public PlanNotFoundException(String message) {
             super(message);
         }
     }

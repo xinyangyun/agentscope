@@ -1,7 +1,10 @@
 package com.example.springbootdemo.controller;
 
 import com.example.springbootdemo.service.PlanModeChatService;
+import com.example.springbootdemo.service.PlanModeChatService.PlanDetails;
 import com.example.springbootdemo.service.PlanModeChatService.PlanModeChatResult;
+import com.example.springbootdemo.service.PlanModeChatService.PlanTask;
+import com.example.springbootdemo.service.PlanModeChatService.PlanNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -12,6 +15,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -89,5 +93,63 @@ class PlanModeAgentControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getPlanV2ReturnsCurrentPlanAndTasks() throws Exception {
+        when(chatService.getPlan("user-001", "session-001"))
+                .thenReturn(new PlanDetails(
+                        "PLAN",
+                        "plans/PLAN.md",
+                        "# 执行计划\n\n1. 查询指数数据",
+                        true,
+                        java.util.List.of(new PlanTask(
+                                "task-1", "查询指数", "获取今日指数数据", "pending"))));
+
+        mockMvc.perform(get("/chat/v2/plan")
+                        .param("userId", "user-001")
+                        .param("sessionId", "session-001"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                          "userId": "user-001",
+                          "sessionId": "session-001",
+                          "mode": "PLAN",
+                          "planFile": "plans/PLAN.md",
+                          "planContent": "# 执行计划\n\n1. 查询指数数据",
+                          "awaitingApproval": true,
+                          "tasks": [{
+                            "id": "task-1",
+                            "subject": "查询指数",
+                            "description": "获取今日指数数据",
+                            "state": "pending"
+                          }]
+                        }
+                        """));
+    }
+
+    @Test
+    void getPlanV2RejectsBlankSessionId() throws Exception {
+        mockMvc.perform(get("/chat/v2/plan")
+                        .param("userId", "user-001")
+                        .param("sessionId", ""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getPlanV2ReturnsNotFoundForUnknownSession() throws Exception {
+        when(chatService.getPlan("user-001", "missing-session"))
+                .thenThrow(new PlanNotFoundException("No Plan Mode session was found"));
+
+        mockMvc.perform(get("/chat/v2/plan")
+                        .param("userId", "user-001")
+                        .param("sessionId", "missing-session"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().json("""
+                        {
+                          "error": "未找到规划会话",
+                          "message": "No Plan Mode session was found"
+                        }
+                        """));
     }
 }

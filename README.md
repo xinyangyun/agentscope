@@ -249,6 +249,29 @@ curl --request POST \
 | `mode` | 当前阶段，`PLAN` 或 `BUILD` |
 | `planFile` | 独立 v2 工作区中的计划文件路径，默认 `plans/PLAN.md` |
 
+查看当前会话的规划内容和执行任务（该接口不会调用模型或执行工具）：
+
+```bash
+curl --request GET \
+  --url 'http://localhost:8080/chat/v2/plan?userId=user-001&sessionId=plan-session-001'
+```
+
+```json
+{
+  "userId": "user-001",
+  "sessionId": "plan-session-001",
+  "mode": "PLAN",
+  "planFile": "plans/PLAN.md",
+  "planContent": "# 执行计划\n...",
+  "awaitingApproval": true,
+  "tasks": []
+}
+```
+
+`awaitingApproval` 表示当前是否停在 `plan_exit` 等待用户批准。进入 BUILD 阶段后，`tasks`
+会返回任务列表及其 `pending`、`in_progress` 或 `completed` 状态。会话不存在时返回
+`404 Not Found`。
+
 `approvePlan` 为 `true` 但该会话没有待批准计划时返回 `409 Conflict`。Plan Mode 的独立配置项
 使用 `AGENTSCOPE_V2_*` 环境变量；默认不开启 PLAN 阶段的 shell，可通过
 `AGENTSCOPE_V2_ALLOW_SHELL=true` 允许只读调查命令，但这会弱化默认的只读保证。
