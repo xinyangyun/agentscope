@@ -1,6 +1,8 @@
 package com.example.springbootdemo.service;
 
 import com.example.springbootdemo.config.PlanModeAgentConfiguration.PlanModeAgentClient;
+import com.example.springbootdemo.model.PlanDetails;
+import com.example.springbootdemo.model.PlanModeChatResult;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
@@ -41,7 +43,7 @@ class PlanModeChatServiceTest {
                     .sessionId("session-001")
                     .build();
 
-            PlanModeChatService.PlanModeChatResult planResult = service.chat(
+            PlanModeChatResult planResult = service.chat(
                     "制定计划", "user-001", "session-001", false);
             assertThat(planResult.mode()).isEqualTo("PLAN");
             assertThat(planResult.planFile()).isEqualTo("plans/PLAN.md");
@@ -51,14 +53,14 @@ class PlanModeChatServiceTest {
                     .filter(tool -> "plan_exit".equals(tool.getName())))
                     .anyMatch(tool -> tool.getState() == ToolCallState.ASKING);
 
-            PlanModeChatService.PlanDetails details = service.getPlan("user-001", "session-001");
+            PlanDetails details = service.getPlan("user-001", "session-001");
             assertThat(details.mode()).isEqualTo("PLAN");
             assertThat(details.planFile()).isEqualTo("plans/PLAN.md");
             assertThat(details.planContent()).isEqualTo("Test plan");
             assertThat(details.awaitingApproval()).isTrue();
             assertThat(details.tasks()).isEmpty();
 
-            PlanModeChatService.PlanModeChatResult buildResult = service.chat(
+            PlanModeChatResult buildResult = service.chat(
                     "批准并执行", "user-001", "session-001", true);
             List<ToolResultBlock> toolResults = agent.getDelegate().getAgentState(context).getContext().stream()
                     .flatMap(msg -> msg.getContentBlocks(ToolResultBlock.class).stream())

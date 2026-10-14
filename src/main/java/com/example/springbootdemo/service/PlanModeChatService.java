@@ -1,6 +1,9 @@
 package com.example.springbootdemo.service;
 
 import com.example.springbootdemo.config.PlanModeAgentConfiguration.PlanModeAgentClient;
+import com.example.springbootdemo.model.PlanDetails;
+import com.example.springbootdemo.model.PlanModeChatResult;
+import com.example.springbootdemo.model.PlanTask;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.message.Msg;
@@ -133,20 +136,6 @@ public class PlanModeChatService {
             root = root.getCause();
         }
         return root.getMessage() == null ? root.getClass().getSimpleName() : root.getMessage();
-    }
-
-    public record PlanModeChatResult(String message, String mode, String planFile) {
-    }
-
-    public record PlanDetails(
-            String mode,
-            String planFile,
-            String planContent,
-            boolean awaitingApproval,
-            List<PlanTask> tasks) {
-    }
-
-    public record PlanTask(String id, String subject, String description, String state) {
     }
 
     public static class PlanApprovalException extends RuntimeException {

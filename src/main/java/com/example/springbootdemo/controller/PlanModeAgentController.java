@@ -1,9 +1,11 @@
 package com.example.springbootdemo.controller;
 
+import com.example.springbootdemo.model.ChatV2Request;
+import com.example.springbootdemo.model.ChatV2Response;
+import com.example.springbootdemo.model.PlanDetails;
+import com.example.springbootdemo.model.PlanModeChatResult;
+import com.example.springbootdemo.model.PlanV2Response;
 import com.example.springbootdemo.service.PlanModeChatService;
-import com.example.springbootdemo.service.PlanModeChatService.PlanDetails;
-import com.example.springbootdemo.service.PlanModeChatService.PlanModeChatResult;
-import com.example.springbootdemo.service.PlanModeChatService.PlanTask;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.MediaType;
@@ -13,8 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @Validated
@@ -57,28 +57,4 @@ public class PlanModeAgentController {
                 details.tasks());
     }
 
-    public record ChatV2Request(
-            @NotBlank(message = "message must not be blank") String message,
-            @NotBlank(message = "userId must not be blank") String userId,
-            @NotBlank(message = "sessionId must not be blank") String sessionId,
-            Boolean approvePlan) {
-    }
-
-    public record ChatV2Response(
-            String message,
-            String userId,
-            String sessionId,
-            String mode,
-            String planFile) {
-    }
-
-    public record PlanV2Response(
-            String userId,
-            String sessionId,
-            String mode,
-            String planFile,
-            String planContent,
-            boolean awaitingApproval,
-            List<PlanTask> tasks) {
-    }
 }

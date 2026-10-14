@@ -1,10 +1,10 @@
 package com.example.springbootdemo.controller;
 
 import com.example.springbootdemo.service.PlanModeChatService;
-import com.example.springbootdemo.service.PlanModeChatService.PlanDetails;
-import com.example.springbootdemo.service.PlanModeChatService.PlanModeChatResult;
-import com.example.springbootdemo.service.PlanModeChatService.PlanTask;
 import com.example.springbootdemo.service.PlanModeChatService.PlanNotFoundException;
+import com.example.springbootdemo.model.PlanDetails;
+import com.example.springbootdemo.model.PlanModeChatResult;
+import com.example.springbootdemo.model.PlanTask;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

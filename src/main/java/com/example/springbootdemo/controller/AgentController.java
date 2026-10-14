@@ -1,8 +1,9 @@
 package com.example.springbootdemo.controller;
 
+import com.example.springbootdemo.model.ChatRequest;
+import com.example.springbootdemo.model.ChatResponse;
 import com.example.springbootdemo.service.AgentChatService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,12 +27,4 @@ public class AgentController {
         return new ChatResponse(reply, request.userId(), request.sessionId());
     }
 
-    public record ChatRequest(
-            @NotBlank(message = "message must not be blank") String message,
-            @NotBlank(message = "userId must not be blank") String userId,
-            @NotBlank(message = "sessionId must not be blank") String sessionId) {
-    }
-
-    public record ChatResponse(String message, String userId, String sessionId) {
-    }
 }
