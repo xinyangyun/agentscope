@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 
-/** Fetches a current A-share quote from Eastmoney with Tencent as fallback. */
+/** 从东方财富获取当前 A 股行情，并以腾讯行情作为备用数据源。 */
 public class StockQuoteTool {
 
     private static final Logger log = LoggerFactory.getLogger(StockQuoteTool.class);
@@ -56,14 +56,14 @@ public class StockQuoteTool {
 
     @Tool(
             name = "fetch_stock_quote",
-            description = "Fetch the latest A-share quote from Eastmoney, falling back to Tencent when necessary.",
+            description = "从东方财富获取最新 A 股行情，必要时自动切换到腾讯行情。",
             readOnly = true,
             concurrencySafe = true)
     public String fetchStockQuote(
             @ToolParam(
                     name = "stock_code",
                     required = true,
-                    description = "Six-digit A-share code such as 600519, or an Eastmoney secid such as 1.600519")
+                    description = "六位 A 股代码（如 600519），或东方财富证券标识（如 1.600519）")
             String stockCode) {
         final String secid;
         try {

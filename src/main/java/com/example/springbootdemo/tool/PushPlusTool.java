@@ -16,7 +16,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-/** Sends WeChat notifications through the PushPlus API. */
+/** 通过 PushPlus API 发送微信通知。 */
 public class PushPlusTool {
 
     private static final Logger log = LoggerFactory.getLogger(PushPlusTool.class);
@@ -44,14 +44,14 @@ public class PushPlusTool {
 
     @Tool(
             name = "push_wechat_message",
-            description = "Send a notification to WeChat through PushPlus. Requires PUSHPLUS_TOKEN configuration.",
+            description = "通过 PushPlus 向微信发送通知，需要配置 PUSHPLUS_TOKEN。",
             readOnly = false,
             concurrencySafe = true)
     public String pushWechatMessage(
-            @ToolParam(name = "title", required = true, description = "Notification title") String title,
-            @ToolParam(name = "content", required = true, description = "Notification body") String content,
+            @ToolParam(name = "title", required = true, description = "通知标题") String title,
+            @ToolParam(name = "content", required = true, description = "通知正文") String content,
             @ToolParam(name = "template", required = false,
-                    description = "PushPlus template, usually markdown or txt") String template) {
+                    description = "PushPlus 消息模板，通常为 markdown 或 txt") String template) {
         if (token.isBlank()) {
             return "微信消息推送失败：未配置 PUSHPLUS_TOKEN。";
         }

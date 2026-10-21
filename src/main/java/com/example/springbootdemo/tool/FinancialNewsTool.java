@@ -33,7 +33,7 @@ public class FinancialNewsTool {
         this(objectMapper, baseUrl, null, maxRecords);
     }
 
-    /** Kept for source compatibility with the previous GDELT-backed configuration. */
+    /** 为兼容此前基于 GDELT 的配置而保留。 */
     public FinancialNewsTool(ObjectMapper objectMapper, String baseUrl, String ignoredTimespan,
                              int maxRecords) {
         this(objectMapper, baseUrl, maxRecords, HttpClient.newBuilder()
@@ -59,14 +59,14 @@ public class FinancialNewsTool {
 
     @Tool(
             name = "fetch_latest_financial_news",
-            description = "Fetch the latest financial messages from the CLS (财联社) telegraph feed.",
+            description = "从财联社电报中获取最新财经快讯。",
             readOnly = true,
             concurrencySafe = true)
     public String fetchLatestFinancialNews(
             @ToolParam(
                     name = "query",
                     required = false,
-                    description = "Optional topic hint used only to label the returned feed")
+                    description = "可选的主题提示，仅用于标注返回的快讯内容")
             String query) {
         String topic = query == null || query.isBlank() ? "财经快讯" : query.trim();
         log.info("Fetching CLS telegraph feed [maxRecords={}]", maxRecords);

@@ -16,7 +16,7 @@ import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.Instant;
 
-/** Fetches market-index data from Tencent's GBK quote endpoint. */
+/** 从腾讯 GBK 行情接口获取市场指数数据。 */
 public class MarketIndexTool {
 
     private static final Logger log = LoggerFactory.getLogger(MarketIndexTool.class);
@@ -41,14 +41,14 @@ public class MarketIndexTool {
 
     @Tool(
             name = "fetch_market_index",
-            description = "Fetch current Chinese market-index data. Supports the Shanghai Composite and ChiNext Index.",
+            description = "获取当前中国市场指数数据，支持上证指数和创业板指。",
             readOnly = true,
             concurrencySafe = true)
     public String fetchMarketIndex(
             @ToolParam(
                     name = "index",
                     required = false,
-                    description = "Index name or code. Supports 上证指数/000001/sh000001 and 创业板指/399006/sz399006")
+                    description = "指数名称或代码，支持上证指数/000001/sh000001 和创业板指/399006/sz399006")
             String index) {
         final String symbol;
         try {
