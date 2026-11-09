@@ -207,6 +207,48 @@ curl --request POST \
 
 校验失败时返回 `400 Bad Request`。模型服务调用失败时返回 `502 Bad Gateway`，响应中的 `message` 会包含上游错误原因。
 
+### 可中断恢复的指数推送任务
+
+该任务不依赖 AgentScope Beta API。应用把“查询指数”和“微信推送”拆成两个持久化步骤，
+任务记录默认保存到 `.agentscope/recoverable-tasks/`。查询完成后中断并重启应用，恢复时会复用
+已保存的指数结果，不会再次查询行情。
+
+创建一个在查询完成后主动中断的演示任务：
+
+```bash
+curl --request POST \
+  --url http://localhost:8080/api/index-push-tasks \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "index": "上证指数",
+    "title": "今日上证指数",
+    "interruptAfterQuery": true
+  }'
+```
+
+使用响应中的 `taskId` 查询任务。状态变为 `INTERRUPTED` 时，`indexResult` 已经持久化，
+PushPlus 尚未调用：
+
+```bash
+curl http://localhost:8080/api/index-push-tasks/{taskId}
+```
+
+此时可以重启应用，再恢复任务：
+
+```bash
+curl --request POST http://localhost:8080/api/index-push-tasks/{taskId}/resume
+```
+
+最终状态为 `COMPLETED`，并包含 PushPlus 返回的 `pushResult`。正常任务可以将
+`interruptAfterQuery` 设为 `false`，也可以在推送开始前调用：
+
+```bash
+curl --request POST http://localhost:8080/api/index-push-tasks/{taskId}/interrupt
+```
+
+如果进程恰好在 PushPlus 请求发出后、结果落盘前退出，任务会标记为
+`PUSH_RESULT_UNKNOWN`，不会自动重试，以免产生重复微信通知。
+
 ### Plan Mode 对话（v2）
 
 `POST /chat/v2` 使用独立的 `HarnessAgent` 和 `application-plan-mode.yml` 配置，不会修改或复用

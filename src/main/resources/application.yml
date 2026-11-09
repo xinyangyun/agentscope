@@ -6,6 +6,8 @@ server:
   port: 8080
 
 agentscope:
+  recoverable-task:
+    directory: ${AGENTSCOPE_RECOVERABLE_TASK_DIR:.agentscope/recoverable-tasks}
   agent:
     name: assistant
     system-prompt: You are a helpful AI assistant.
